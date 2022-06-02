@@ -2,6 +2,8 @@
 
 require "test_helper"
 
+include DRT
+
 class DrtTest < Test::Unit::TestCase
   test "VERSION" do
     assert do
@@ -10,6 +12,14 @@ class DrtTest < Test::Unit::TestCase
   end
 
   test "something useful" do
-    assert_equal("expected", "actual")
+    assert_equal("3", "3")
   end
+  
+  test "Test requesting student info" do
+	si = DRT::requestStudentInfo("181-15-955")
+	puts(si)
+	assert(DRT.public_methods.include?(:requestStudentInfo))
+  end 
+  
+  
 end

@@ -1,0 +1,33 @@
+PATH
+  remote: .
+  specs:
+    drt (0.1.0)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    faraday (2.3.0)
+      faraday-net_http (~> 2.0)
+      ruby2_keywords (>= 0.0.4)
+    faraday-net_http (2.0.3)
+    power_assert (2.0.1)
+    rake (13.0.6)
+    ruby2_keywords (0.0.5)
+    sequel (5.57.0)
+    sqlite3 (1.4.2)
+    test-unit (3.5.3)
+      power_assert
+
+PLATFORMS
+  x86_64-linux
+
+DEPENDENCIES
+  drt!
+  faraday (~> 2.3)
+  rake (~> 13.0)
+  sequel (~> 5.57)
+  sqlite3 (~> 1.4)
+  test-unit (~> 3.0)
+
+BUNDLED WITH
+   2.3.12

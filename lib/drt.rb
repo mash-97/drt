@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "drt/version"
+require_relative "drt/drt"
 
-module Drt
-  class Error < StandardError; end
-  # Your code goes here...
+module DRT
 end
