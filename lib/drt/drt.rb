@@ -3,7 +3,9 @@ require 'yaml'
 require 'faraday'
 require 'active_record'
 
+# DIU student Result Trends
 module DRT
+  # module to maintain structure
   DRT_DIRPATH = File.join(ENV['HOME'], '.drt')
   DRT_CONFIGPATH = File.join(DRT_DIRPATH, 'drt_config.yml')
   DRT_LOGPATH = File.join(DRT_DIRPATH, 'drt.log')
@@ -37,7 +39,10 @@ module DRT
     ActiveRecord::Base.establish_connection(adapter: :sqlite3, database: db_path, logger: Logger.new(log_path))
   end
 
+  ##
+  # Config class
   class Config
+    # attributes to maintain configuration static
     attr_accessor :db_path, :db_log_path
 
     def initialize(config_path = DRT_CONFIGPATH)
@@ -57,7 +62,11 @@ module DRT
     end
   end
 
+  ##
+  # DIU student Result Trends Class
   class DRT
+    ##
+    # This class does the heavy work
     def initialize(config, logger = DRT::LOGGER_GEN.call())
       @faraday_connection = DRT::FARADAY_CONNECTION_GEN.call
       @config = config
