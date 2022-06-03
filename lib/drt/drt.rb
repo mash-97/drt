@@ -1,6 +1,7 @@
 require 'logger'
 require 'yaml'
 require 'faraday'
+require 'active_record'
 
 module DRT 
 
@@ -34,18 +35,25 @@ module DRT
 				
 			}
 	end
+	
+	DB_CONNECTION_GEN = ->(db_path, log_path) do 
+		ActiveRecord::Base.establish_connection(adapter: :sqlite3, database: db_path, logger: Logger.new(log_path))
+	end
+	
+	
     class Config
 		attr_accessor :db_path
+		attr_accessor :db_log_path
 		
 		def initialize(config_path = DRT_CONFIGPATH)
 			@config_path = config_path
 			@configs = Config.loadConfigs(@config_path)
-			@db_path = Config.parseConfigs(@configs)
+			@db_path, @db_log_path = Config.parseConfigs(@configs)
 		end
 		
 		def self.parseConfigs(configs_hash)
-			db_path = configs_hash["db_path"]
-			return [db_path]
+			db_path, db_log_path = [configs_hash["db_path"], configs_hash["db_log_path"]]
+			return [db_path, db_log_path]
 		end
 		
 		def self.loadConfigs(config_path)
@@ -54,22 +62,23 @@ module DRT
 	end
 	
     class DRT 
-        # get student info from result page
+
         def initialize(config, logger = DRT::LOGGER_GEN.call())
 			@faraday_connection = DRT::FARADAY_CONNECTION_GEN.call()
 			@config = config
 			@logger = logger
+			@db = DRT::DB_CONNECTION_GEN.call(@config.db_path, @config.db_log_path)
 		end
 		
-		def requestStudentInfo(student_id)
-			pusts("faraday connection: #{@faraday_connection}")
-			response = @faraday_connection.get("result/studentInfo", studentId: student_id)
-			return response.body
-		end
+		
     end
 	def requestStudentInfo(faraday_connection=DRT::FARADAY_CONNECTION_GEN.call(), student_id)
-		puts("faraday connection: #{faraday_connection}")
 		response = faraday_connection.get("result/studentInfo", studentId: student_id)
+		return response.body
+	end
+	
+	def requestStudentResult(faraday_connection=DRT::FARADAY_CONNECTION_GEN.call(), student_id, semester_id)
+		response = faraday_connection.get("result", studentId: student_id, semesterId: semester_id)
 		return response.body
 	end
 end
