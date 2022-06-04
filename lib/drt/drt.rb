@@ -1,7 +1,13 @@
+# frozen_string_literal: true
+
 require 'logger'
 require 'yaml'
 require 'faraday'
 require 'active_record'
+
+require_relative 'key_maps'
+require_relative 'migrator'
+require_relative 'models'
 
 # DIU student Result Trends
 module DRT

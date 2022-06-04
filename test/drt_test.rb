@@ -57,11 +57,13 @@ class DrtTest < Test::Unit::TestCase
 
   test 'Test requesting student info' do
     si = ::DRT.request_student_info('181-15-955')
+    puts("==> Student Info: #{si.to_s}")
     assert(si['studentName'], 'Mashiur Rahman')
     assert(::DRT.public_methods.include?(:request_student_info))
   end
   test 'Test requesting student result' do
     sr = ::DRT.request_student_result('181-15-955', 221)
+    puts("==> Student Result (221): #{sr.to_s}")
     assert_equal(sr.length, 5)
     assert(::DRT.public_methods.include?(:request_student_result))
   end
@@ -76,5 +78,19 @@ class DrtTest < Test::Unit::TestCase
     assert(ActiveRecord::Base.connection.tables.length >= 2)
     assert((connection.column_exists?(:associated_tests, :test_id) and connection.column_exists?(:tests, :test_id)))
     assert(connection.foreign_key_exists?(:associated_tests, :tests))
+
+    DRTMigrator.migrate(:up)
+    assert(connection.table_exists?(:students))
+    assert(connection.table_exists?(:semester_results))
+    assert(connection.column_exists?(:students, :student_id))
+    assert(connection.column_exists?(:semester_results, :semester_id))
+
+    # test data toll in db
+    s = Student.create(student_id: '181-15-955', student_name: 'mash')
+    sr = SemesterResult.create(semester_id: '221', student: s)
+    assert(s.semester_results.length == 1)
+    assert(s.semester_results.first == sr)
+    assert(sr.student == s)
   end
+
 end
