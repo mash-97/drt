@@ -28,6 +28,22 @@ class DRTThor < Thor
     DRT_OBJ.swing_db_for_semester_result(student_ids: student_ids, semester_ids: semester_ids)
   end
 
+  desc 'detect_range [--semester_code, --dept_code, --start_id, --end_id]', 'detect range for valid student ids'
+  option :semester_code, type: :string
+  option :dept_code, type: :string
+  option :start_id, type: :numeric
+  option :end_id, type: :numeric
+  def detect_range
+    semester_code = options[:semester_code]
+    dept_code = options[:dept_code]
+    start_id = options[:start_id].to_i
+    end_id = options[:end_id].to_i
+    primary_range = (start_id..end_id)
+
+    result = DRT_OBJ.detect_ranges(semester_code, dept_code, primary_range)
+    say("Range Founds: #{result.to_s}".bold)
+  end
+
   desc 'mass_update [--start_student_id, --end_student_id, --start_year, --end_year, --sem]',
        'mass update DB with semester results of students ranged year'
   option :start_student_id, type: :string

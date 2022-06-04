@@ -156,6 +156,12 @@ module DRT
       end
       return [total_updates, total_not_found_students]
     end
+
+    def detect_ranges(semester_code, dept_code, primary_id_range)
+      result = ::DRT.detect_range_by_student_info_hit(semester_code, dept_code, primary_id_range, @faraday_connection)
+      @logger.info("Detect Range for #{semester_code}-#{dept_code}-#{primary_id_range.to_s} -- result: #{result.to_s}")
+      return result
+    end
   end
 
   def self.request_student_info(student_id, faraday_connection = FARADAY_CONNECTION_GEN.call())
@@ -185,7 +191,34 @@ module DRT
       end
     end
   end
-
+  def self.detect_range_by_student_info_hit(semester_code, dept_code, primary_id_range, faraday_connection = FARADAY_CONNECTION_GEN.call())
+    ranges = []
+    first = primary_id_range.first
+    prev = nil
+    primary_id_range.each do |rid|
+      student_id = [semester_code.to_s, dept_code.to_s, rid.to_s].join('-')
+      student_info = request_student_info(student_id, faraday_connection)
+      student_info = parse_student_info(student_info)
+      puts("\n\n==> student_info: #{student_info.to_s}")
+      if student_info[:student_id] == nil then
+        if prev != nil then
+          ranges << (first..prev)
+        end
+        first = nil
+        prev = nil
+      else
+        if first == nil then
+          first = rid
+        end 
+        prev = rid
+      end
+    end
+    if prev != nil then
+      ranges << (first..prev)
+    end
+    return ranges
+  end
+        
   # updates a single semester_result given student_id, semester_id and faraday_connection
   def self.update_semester_result(student_id, semester_id, faraday_connection = FARADAY_CONNECTION_GEN.call())
     latest_semester_result = request_semester_result(student_id, semester_id, faraday_connection)
