@@ -6,7 +6,7 @@ require "drt"
 
 include DRT
 f = FARADAY_CONNECTION_GEN.call()
-DB_CONNECTION_GEN.call("test/tmp/test.db", "test/tmp/test.log")
+DB_CONNECTION_GEN.call("test/tmp/test_test.db", "test/tmp/test_test.log")
 # You can add fixtures and/or initialization code here to make experimenting
 # with your gem easier. You can also use a different console, if you like.
 

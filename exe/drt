@@ -1,3 +1,58 @@
 #!/usr/bin/env ruby
 
-require "drt"
+require 'thor'
+require 'drt'
+
+CONFIG = ::DRT::Config.new(::DRT::DRT_CONFIGPATH, ::DRT::DEFAULT_DB_PATH, ::DRT::DEFAULT_DB_LOG_PATH)
+DRT_OBJ = ::DRT::DRT.new(config)
+
+class DRTThor < Thor
+  desc 'update [--student_ids, --semester_ids]', 'update DB with semester results of students'
+  option :student_ids, type: :array
+  option :semester_ids, type: :array
+  def update
+    student_ids = options[:student_ids] or ::DRT::Student.distinct(:student_id).select(:student_id).collect do |x|
+      x.student_id
+    end
+    semester_ids = options[:semester_ids] or ::DRT::SemesterResult.distinct(:semester_id).select(:semester_id).collect do |x|
+      x.semester_id
+    end
+
+    DRT_OBJ.swing_db_for_semester_result(student_ids: student_ids, semester_ids: semester_ids)
+  end
+
+  desc 'mass_update [--start_student_id, --end_student_id, --start_year, --end_year, --sem]',
+       'mass update DB with semester results of students ranged year'
+  option :start_student_id, type: :string
+  option :end_student_id, type: :string
+  option :start_year, type: :integer
+  option :end_year, type: :integer
+  option :sem, type: :integer, default: 3
+  def mass_update
+    ssi = options[:start_student_id].split('-')
+    esi = options[:end_student_id].split('-')
+    ssii = ssi[2].to_i
+    esii = esi[2].to_i
+    diff = esii[2].to_i - ssii[2].to_i
+
+    start_year = options[:start_year]
+    end_year = options[:end_year]
+    diffy = end_year - start_year
+
+    if diff < 1 || diffy < 1 || !(ssi[0] == esi[0] && ssi[1] == esi[1])
+      say('Check arguments'.red)
+      return
+    end
+
+    say("Diff exceeds #{diff}, #{diffy}".yellow) if diff > 100 || diffy > 3
+
+    student_ids = (ssii..esii).collect { |x| [*ssi[0..1], x.to_s].join('-') }
+    semester_ids = (start_year..end_year).collect do |x|
+      sem.times.collect { |i| (x % 100).to_s + (i + 1).to_s }
+    end
+    semester_ids.flatten!
+    DRT_OBJ.swing_db_for_semester_result(student_ids: student_ids, semester_ids: semester_ids)
+  end
+end
+
+DRTThor.start(ARGV)
