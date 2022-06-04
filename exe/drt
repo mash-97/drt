@@ -59,7 +59,8 @@ class DRTThor < Thor
       sem.times.collect { |i| (x % 100).to_s + (i + 1).to_s }
     end
     semester_ids.flatten!
-    DRT_OBJ.swing_db_for_semester_result(student_ids: student_ids, semester_ids: semester_ids)
+    t, n = DRT_OBJ.swing_db_for_semester_result(student_ids: student_ids, semester_ids: semester_ids)
+    say("\n\n==> Total Updates: #{t} -- Total Not Found: #{n}".blue.bold)
   end
 end
 

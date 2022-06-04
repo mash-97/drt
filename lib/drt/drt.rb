@@ -126,19 +126,35 @@ module DRT
       student_ids = kwargs[:student_ids] or []
       student_ids.each do |si|
         @logger.info("Updating student info (#{si})")
-        ::DRT.update_student_info(si, @faraday_connection)
+        puts("\n\n==> Updating student info (#{si})")
+        result = ::DRT.update_student_info(si, @faraday_connection)
+        puts("==> Student ID: #{result['student_id']}, Name: #{result['student_name']}")
       end
     end
 
     def swing_db_for_semester_result(**kwargs)
+      total_updates = 0
+      total_not_found_students = 0
+
       semester_ids = kwargs[:semester_ids] or []
       student_ids = kwargs[:student_ids] or []
       student_ids.each do |si|
+        puts("\n\n==> For Student (#{si})")
         semester_ids.each do |semsi|
-          @logger.info("Updating student semester result (#{si}, #{semsi})")
-          ::DRT.update_semester_result(si, semsi, @faraday_connection)
+          begin
+            @logger.info("Updating student semester result (#{si}, #{semsi})")
+            result = ::DRT.update_semester_result(si, semsi, @faraday_connection)
+            puts("==> semester_id: #{semsi} total_course_taken: #{result.length}")
+            total_updates += 1
+          rescue StudentNull => e
+            puts("##> Not Found! -- #{e}")
+            total_not_found_students += 1
+            break
+          end
         end
+        puts("\n\n\n")
       end
+      return [total_updates, total_not_found_students]
     end
   end
 
@@ -155,11 +171,8 @@ module DRT
   # updates a single student info given student_id and faraday_connection
   def self.update_student_info(student_id, faraday_connection = FARADAY_CONNECTION_GEN.call())
     latest_student_info = request_student_info(student_id, faraday_connection)
-    puts("==> latest_student_info: #{latest_student_info.to_s}")
     student = Student.find_by(student_id: student_id)
     parsed_student_info = parse_student_info(latest_student_info)
-
-    puts("==> parsed_student_info: #{parsed_student_info.to_s}")
 
     if student
       student.update(**parsed_student_info)
@@ -176,14 +189,11 @@ module DRT
   # updates a single semester_result given student_id, semester_id and faraday_connection
   def self.update_semester_result(student_id, semester_id, faraday_connection = FARADAY_CONNECTION_GEN.call())
     latest_semester_result = request_semester_result(student_id, semester_id, faraday_connection)
-    puts("==> latest_semester_result: #{latest_semester_result.to_s}")
     student = Student.find_by(student_id: student_id)
 
     student ||= update_student_info(student_id)
 
     parsed_semester_result = parse_semester_result(latest_semester_result)
-
-    puts("==> parsed_semester_result: #{parsed_semester_result.to_s}")
 
     updated_semester_result = []
     parsed_semester_result.each do |ssr|
