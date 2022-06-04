@@ -3,8 +3,12 @@
 require 'thor'
 require 'drt'
 
+unless Dir.exist?(::DRT::DRT_DIRPATH)
+  Dir.mkdir(::DRT::DRT_DIRPATH)
+end
+
 CONFIG = ::DRT::Config.new(::DRT::DRT_CONFIGPATH, ::DRT::DEFAULT_DB_PATH, ::DRT::DEFAULT_DB_LOG_PATH)
-DRT_OBJ = ::DRT::DRT.new(config)
+DRT_OBJ = ::DRT::DRT.new(CONFIG)
 
 class DRTThor < Thor
   desc 'update [--student_ids, --semester_ids]', 'update DB with semester results of students'
@@ -25,9 +29,9 @@ class DRTThor < Thor
        'mass update DB with semester results of students ranged year'
   option :start_student_id, type: :string
   option :end_student_id, type: :string
-  option :start_year, type: :integer
-  option :end_year, type: :integer
-  option :sem, type: :integer, default: 3
+  option :start_year, type: :numeric
+  option :end_year, type: :numeric
+  option :sem, type: :numeric, default: 3
   def mass_update
     ssi = options[:start_student_id].split('-')
     esi = options[:end_student_id].split('-')
