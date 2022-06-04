@@ -121,8 +121,8 @@ module DRT
     else
       begin
         Student.create(**parsed_student_info)
-      rescue StandardError => exception
-        raise StudentNull(student_id, exception)
+      rescue StandardError => e
+        raise StudentNull(student_id, e)
       end
     end
   end
