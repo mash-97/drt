@@ -3,6 +3,7 @@ PATH
   specs:
     drt (0.1.0)
       activerecord (~> 7.0)
+      colored (~> 1.2)
       faraday (~> 2.3)
       sqlite3 (~> 1.4)
       thor (~> 1.2)
@@ -20,6 +21,7 @@ GEM
       i18n (>= 1.6, < 2)
       minitest (>= 5.1)
       tzinfo (~> 2.0)
+    colored (1.2)
     concurrent-ruby (1.1.10)
     faraday (2.3.0)
       faraday-net_http (~> 2.0)
@@ -44,6 +46,7 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord (~> 7.0)
+  colored (~> 1.2)
   drt!
   faraday (~> 2.3)
   rake (~> 13.0)

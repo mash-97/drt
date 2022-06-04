@@ -1,7 +1,10 @@
 #!/usr/bin/env ruby
 
 require 'thor'
+require 'colored'
+
 require 'drt'
+
 
 unless Dir.exist?(::DRT::DRT_DIRPATH)
   Dir.mkdir(::DRT::DRT_DIRPATH)
@@ -33,11 +36,12 @@ class DRTThor < Thor
   option :end_year, type: :numeric
   option :sem, type: :numeric, default: 3
   def mass_update
+    sem = options[:sem]
     ssi = options[:start_student_id].split('-')
     esi = options[:end_student_id].split('-')
     ssii = ssi[2].to_i
     esii = esi[2].to_i
-    diff = esii[2].to_i - ssii[2].to_i
+    diff = esii - ssii
 
     start_year = options[:start_year]
     end_year = options[:end_year]
