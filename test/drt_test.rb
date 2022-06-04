@@ -62,10 +62,10 @@ class DrtTest < Test::Unit::TestCase
     assert(::DRT.public_methods.include?(:request_student_info))
   end
   test 'Test requesting student result' do
-    sr = ::DRT.request_student_result('181-15-955', 221)
+    sr = ::DRT.request_semester_result('181-15-955', 221)
     puts("==> Student Result (221): #{sr.to_s}")
     assert_equal(sr.length, 5)
-    assert(::DRT.public_methods.include?(:request_student_result))
+    assert(::DRT.public_methods.include?(:request_semester_result))
   end
 
   test 'Test Database Connection Through Active Record' do
@@ -86,8 +86,17 @@ class DrtTest < Test::Unit::TestCase
     assert(connection.column_exists?(:semester_results, :semester_id))
 
     # test data toll in db
-    s = Student.create(student_id: '181-15-955', student_name: 'mash')
-    sr = SemesterResult.create(semester_id: '221', student: s)
+    s = nil
+    if Student.exists?(student_id: '181-15-955')
+      s = Student.find_by(student_id: '181-15-955')
+    else
+      s = Student.create(student_id: '181-15-955', student_name: 'mash')
+    end
+    if SemesterResult.exists?(semester_id: '221', student: s)
+      sr = SemesterResult.find_by(semester_id: '221', student: s)
+    else
+      sr = SemesterResult.create(semester_id: '221', student: s)
+    end
     assert(s.semester_results.length == 1)
     assert(s.semester_results.first == sr)
     assert(sr.student == s)
