@@ -16,3 +16,5 @@ gem "sqlite3", "~> 1.4"
 gem "faraday", "~> 2.3"
 
 gem "activerecord", "~> 7.0"
+
+gem "thor", "~> 1.2"
