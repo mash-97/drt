@@ -97,9 +97,20 @@ class DrtTest < Test::Unit::TestCase
     else
       sr = SemesterResult.create(semester_id: '221', student: s)
     end
-    assert(s.semester_results.length == 1)
+    assert(s.semester_results.length >= 1)
     assert(s.semester_results.first == sr)
     assert(sr.student == s)
   end
 
+  test 'Test DRT class' do 
+    config = ::DRT::Config.new(File.join(TEST_TMP_PATH, "test_drt.config"), File.join(TEST_TMP_PATH, "test_test.db"), File.join(TEST_TMP_PATH, "test_test_db.log"))
+    logger = LOGGER_GEN.call(File.join(TEST_TMP_PATH, "test_test.log"))
+    drt = ::DRT::DRT.new(config, logger)
+    drt.swing_db_for_semester_result(
+      semester_ids: ["221", "181", "201"],
+      student_ids: ["181-15-955", "181-15-943", "181-15-951", "181-15-954"]
+    )
+    puts("Students: #{Student.all()}")
+    assert(Student.all().length==4)
+  end
 end

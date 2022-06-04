@@ -16,16 +16,20 @@ module DRT
   DRT_CONFIGPATH = File.join(DRT_DIRPATH, 'drt_config.yml')
   DRT_LOGPATH = File.join(DRT_DIRPATH, 'drt.log')
 
+  DEFAULT_DB_PATH = File.join(DRT_DIRPATH, "drt.db")
+  DEFAULT_DB_LOG_PATH = File.join(DRT_DIRPATH, "drt_db.log")
+
   LOGGER_GEN = lambda do |log_path = DRT_LOGPATH|
     l = Logger.new(log_path)
     l.formatter = proc do |severity, datetime, progname, msg|
       datetime = datetime.strftime('%d-%m-%Y %H:%M:%S')
       if progname
-        "[#{datetime}]: (#{severity}) (#{progname}) => #{msg}"
+        "[#{datetime}]: (#{severity}) (#{progname}) => #{msg}\n"
       else
-        "[#{datetime}]: (#{severity}) => #{msg}"
+        "[#{datetime}]: (#{severity}) => #{msg}\n"
       end
     end
+    l
   end
 
   SITE_URL = 'http://software.diu.edu.bd:8189'.freeze
@@ -41,8 +45,13 @@ module DRT
     end
   end
 
-  DB_CONNECTION_GEN = lambda do |db_path, log_path|
-    ActiveRecord::Base.establish_connection(adapter: :sqlite3, database: db_path, logger: Logger.new(log_path))
+  DB_CONNECTION_GEN = lambda do |db_path, logger|
+    ActiveRecord::Base.establish_connection(
+      adapter: :sqlite3, 
+      database: db_path, 
+
+      logger: (logger.instance_of?(String) ? Logger.new(logger) : (log_path.instance_of?(Logger) ? logger : nil))
+    )
   end
 
   ## Exceptions
@@ -66,10 +75,19 @@ module DRT
     # attributes to maintain configuration static
     attr_accessor :db_path, :db_log_path
 
-    def initialize(config_path = DRT_CONFIGPATH)
+    def initialize(config_path, db_path, db_log_path)
       @config_path = config_path
+      @db_path = db_path
+      @db_log_path = db_log_path
+
+      reconfig unless File.exist?(@config_path)
+
       @configs = Config.load_configs(@config_path)
       @db_path, @db_log_path = Config.parse_configs(@configs)
+    end
+
+    def reconfig
+      Config.initialize_config(@config_path, @db_path, @db_log_path)
     end
 
     def self.parse_configs(configs_hash)
@@ -81,6 +99,14 @@ module DRT
     def self.load_configs(config_path)
       YAML.load_file(config_path)
     end
+
+    def self.initialize_config(config_file_path, db_path, db_log_path)
+      configs = {
+        'db_path' => db_path,
+        'db_log_path' => db_log_path
+      }
+      File.open(config_file_path, 'w+') { |f| YAML.dump(configs, f) }
+    end
   end
 
   ##
@@ -88,11 +114,31 @@ module DRT
   class DRT
     ##
     # This class does the heavy work
-    def initialize(config, logger = DRT::LOGGER_GEN.call())
-      @faraday_connection = DRT::FARADAY_CONNECTION_GEN.call
+    def initialize(config, logger = LOGGER_GEN.call())
+      @faraday_connection = FARADAY_CONNECTION_GEN.call
       @config = config
       @logger = logger
-      @db = DRT::DB_CONNECTION_GEN.call(@config.db_path, @config.db_log_path)
+      @db = DB_CONNECTION_GEN.call(@config.db_path, @config.db_log_path)
+      DRTMigrator.migrate(:up)
+    end
+
+    def swing_db_for_student_info(**kwargs)
+      student_ids = kwargs[:student_ids] or []
+      student_ids.each do |si|
+        @logger.info("Updating student info (#{si})")
+        ::DRT.update_student_info(si, @faraday_connection)
+      end
+    end
+
+    def swing_db_for_semester_result(**kwargs)
+      semester_ids = kwargs[:semester_ids] or []
+      student_ids = kwargs[:student_ids] or []
+      student_ids.each do |si|
+        semester_ids.each do |semsi|
+          @logger.info("Updating student semester result (#{si}, #{semsi})")
+          ::DRT.update_semester_result(si, semsi, @faraday_connection)
+        end
+      end
     end
   end
 
@@ -122,7 +168,7 @@ module DRT
       begin
         Student.create(**parsed_student_info)
       rescue StandardError => e
-        raise StudentNull(student_id, e)
+        raise StudentNull.new(student_id, e)
       end
     end
   end
