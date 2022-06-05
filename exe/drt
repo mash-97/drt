@@ -63,7 +63,7 @@ class DRTThor < Thor
     end_year = options[:end_year]
     diffy = end_year - start_year
 
-    if diff < 1 || diffy < 1 || !(ssi[0] == esi[0] && ssi[1] == esi[1])
+    if diff < 0 || diffy < 0 || !(ssi[0] == esi[0] && ssi[1] == esi[1])
       say('Check arguments'.red)
       return
     end
