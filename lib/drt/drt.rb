@@ -169,6 +169,15 @@ module DRT
     response.body
   end
 
+  def self.get_student_info(student_id,  faraday_connection = FARADAY_CONNECTION_GEN.call())
+    response = faraday_connection.get('result/studentInfo', studentId: student_id)
+    parsed_student_info = parse_student_info(response.body)
+
+    return nil if parsed_student_info[:student_id] == nil
+
+    return parsed_student_info
+  end
+
   def self.request_semester_result(student_id, semester_id, faraday_connection = FARADAY_CONNECTION_GEN.call())
     response = faraday_connection.get('result', studentId: student_id, semesterId: semester_id)
     response.body

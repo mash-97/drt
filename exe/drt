@@ -44,6 +44,77 @@ class DRTThor < Thor
     say("Range Founds: #{result.to_s}".bold)
   end
 
+  desc 'id_roller [--semester_code, --dept_code, --start_id, --end_id, --tries|3, --sleep|2]', 'detect range for valid student ids'
+  option :semester_code, type: :string
+  option :dept_code, type: :string
+  option :start_id, type: :numeric
+  option :end_id, type: :numeric
+  option :tries, type: :numeric, default: 3
+  option :sleep_time, type: :numeric, default: 2
+  def id_roller
+    semester_code = options[:semester_code]
+    dept_code = options[:dept_code]
+    start_id = options[:start_id].to_i
+    end_id = options[:end_id].to_i
+    primary_range = (start_id..end_id)
+
+    log_file_path = File.join(File.absolute_path(Dir.pwd), "id_roller__#{Time.now.strftime('%d_%m_%Y__%H_%M_%S')}.log")
+    student_id_log_file_path = File.join(File.absolute_path(Dir.pwd), "#{semester_code}_#{dept_code}__#{Time.now.strftime('%d_%m_%Y__%H_%M_%S')}.log")
+    logger = ::DRT::LOGGER_GEN.call(log_file_path)
+    student_id_logger = ::DRT::LOGGER_GEN.call(student_id_log_file_path)
+
+    logger.info("DETECT ID RANGES GIVEN SEMESTER_CODE DEPARTMENT_CODE AND POST_ID RANGE")
+    logger.info("SEMESTER_CODE(#{semester_code}) DEPARTMENT_CODE(#{dept_code}) POST_ID RANGE(#{start_id}..#{end_id})")
+
+    say("SEMESTER_CODE(#{semester_code}) DEPARTMENT_CODE(#{dept_code}) POST_ID RANGE(#{start_id}..#{end_id})".blue.bold)
+
+    valid_ranges = []
+    fp = nil
+    pp = nil
+    primary_range.each do |post_id|
+      student_id = [semester_code, dept_code, post_id].map(&:to_s).join('-')
+      student_info = nil
+      options[:tries].times do |i|
+        begin
+          student_info = ::DRT.get_student_info(student_id)
+        rescue Faraday::ConnectionFailed => e
+          say("##[tries: #{i+1}]##> Connection Error! #{e}".red.bold)
+          sleep(options[:sleep_time])
+          continue
+        end
+        break
+      end
+      if student_info != nil
+        say("#{student_id}".bold+":"+'found'.green.bold)
+        student_id_logger.info("#{student_id}: #{student_info.select{|k,v| [:student_name, :campus_name, :shift].include?(k)}}")
+
+        if pp == nil then
+          fp = post_id
+        end
+        pp = post_id
+      else
+        say("#{student_id}".bold+":"+'not found'.yellow.bold)
+        if fp != nil and pp != nil then
+          valid_ranges << (fp..pp)
+          say("==> Valid range: #{(fp..pp).to_s}")
+          logger.info("Valid range: #{(fp..pp).to_s}")
+          fp = nil
+        end
+        pp = nil
+      end
+    end
+    if fp != nil and pp != nil then
+      valid_ranges << (fp..pp)
+      say("==> Valid range: #{(fp..pp).to_s}")
+      logger.info("Valid range: #{(fp..pp).to_s}")
+    end
+    
+    logger.info("Valid Ranges: #{valid_ranges.to_s}")
+
+    say("===> Basic Logs at: #{log_file_path}".green.bold)
+    say("===> Student ID Logs at: #{student_id_log_file_path}".green.bold)
+  end
+
   desc 'mass_update [--start_student_id, --end_student_id, --start_year, --end_year, --sem]',
        'mass update DB with semester results of students ranged year'
   option :start_student_id, type: :string
