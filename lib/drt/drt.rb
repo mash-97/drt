@@ -16,8 +16,8 @@ module DRT
   DRT_CONFIGPATH = File.join(DRT_DIRPATH, 'drt_config.yml')
   DRT_LOGPATH = File.join(DRT_DIRPATH, 'drt.log')
 
-  DEFAULT_DB_PATH = File.join(DRT_DIRPATH, "drt.db")
-  DEFAULT_DB_LOG_PATH = File.join(DRT_DIRPATH, "drt_db.log")
+  DEFAULT_DB_PATH = File.join(DRT_DIRPATH, 'drt.db')
+  DEFAULT_DB_LOG_PATH = File.join(DRT_DIRPATH, 'drt_db.log')
 
   LOGGER_GEN = lambda do |log_path = DRT_LOGPATH|
     l = Logger.new(log_path)
@@ -32,7 +32,7 @@ module DRT
     l
   end
 
-  SITE_URL = 'http://software.diu.edu.bd:8189'.freeze
+  SITE_URL = 'http://software.diu.edu.bd:8189'
   FARADAY_CONNECTION_GEN = lambda do
     Faraday.new(
       url: SITE_URL,
@@ -47,10 +47,14 @@ module DRT
 
   DB_CONNECTION_GEN = lambda do |db_path, logger|
     ActiveRecord::Base.establish_connection(
-      adapter: :sqlite3, 
-      database: db_path, 
+      adapter: :sqlite3,
+      database: db_path,
 
-      logger: (logger.instance_of?(String) ? Logger.new(logger) : (log_path.instance_of?(Logger) ? logger : nil))
+      logger: (if logger.instance_of?(String)
+                 Logger.new(logger)
+               else
+                 (log_path.instance_of?(Logger) ? logger : nil)
+               end)
     )
   end
 
@@ -119,9 +123,9 @@ module DRT
       @config = config
       @logger = logger
       @db = DB_CONNECTION_GEN.call(@config.db_path, @config.db_log_path)
-      unless @db.connection.table_exists?(:students) or @db.connection.table_exists?(:semester_results) then
-		DRTMigrator.migrate(:up)
-	  end
+      unless @db.connection.table_exists?(:students) || @db.connection.table_exists?(:semester_results)
+        DRTMigrator.migrate(:up)
+      end
     end
 
     def swing_db_for_student_info(**kwargs)
@@ -156,13 +160,13 @@ module DRT
         end
         puts("\n\n\n")
       end
-      return [total_updates, total_not_found_students]
+      [total_updates, total_not_found_students]
     end
 
     def detect_ranges(semester_code, dept_code, primary_id_range)
       result = ::DRT.detect_range_by_student_info_hit(semester_code, dept_code, primary_id_range, @faraday_connection)
-      @logger.info("Detect Range for #{semester_code}-#{dept_code}-#{primary_id_range.to_s} -- result: #{result.to_s}")
-      return result
+      @logger.info("Detect Range for #{semester_code}-#{dept_code}-#{primary_id_range} -- result: #{result}")
+      result
     end
   end
 
@@ -171,13 +175,13 @@ module DRT
     response.body
   end
 
-  def self.get_student_info(student_id,  faraday_connection = FARADAY_CONNECTION_GEN.call())
+  def self.get_student_info(student_id, faraday_connection = FARADAY_CONNECTION_GEN.call())
     response = faraday_connection.get('result/studentInfo', studentId: student_id)
     parsed_student_info = parse_student_info(response.body)
 
-    return nil if parsed_student_info[:student_id] == nil
+    return nil if parsed_student_info[:student_id].nil?
 
-    return parsed_student_info
+    parsed_student_info
   end
 
   def self.request_semester_result(student_id, semester_id, faraday_connection = FARADAY_CONNECTION_GEN.call())
@@ -202,6 +206,7 @@ module DRT
       end
     end
   end
+
   def self.detect_range_by_student_info_hit(semester_code, dept_code, primary_id_range, faraday_connection = FARADAY_CONNECTION_GEN.call())
     ranges = []
     first = primary_id_range.first
@@ -210,26 +215,20 @@ module DRT
       student_id = [semester_code.to_s, dept_code.to_s, rid.to_s].join('-')
       student_info = request_student_info(student_id, faraday_connection)
       student_info = parse_student_info(student_info)
-      puts("\n\n==> student_info: #{student_info.to_s}")
-      if student_info[:student_id] == nil then
-        if prev != nil then
-          ranges << (first..prev)
-        end
+      puts("\n\n==> student_info: #{student_info}")
+      if student_info[:student_id].nil?
+        ranges << (first..prev) unless prev.nil?
         first = nil
         prev = nil
       else
-        if first == nil then
-          first = rid
-        end 
+        first = rid if first.nil?
         prev = rid
       end
     end
-    if prev != nil then
-      ranges << (first..prev)
-    end
-    return ranges
+    ranges << (first..prev) unless prev.nil?
+    ranges
   end
-        
+
   # updates a single semester_result given student_id, semester_id and faraday_connection
   def self.update_semester_result(student_id, semester_id, faraday_connection = FARADAY_CONNECTION_GEN.call())
     latest_semester_result = request_semester_result(student_id, semester_id, faraday_connection)
@@ -250,6 +249,6 @@ module DRT
       updated_semester_result << tssr
     end
 
-    return updated_semester_result
+    updated_semester_result
   end
 end

@@ -15,12 +15,11 @@ class DrtTest < Test::Unit::TestCase
 
   test 'VERSION' do
     assert do
-      ::Drt.const_defined?(:VERSION)
+      ::DRT.const_defined?(:VERSION)
     end
   end
 
   test 'Test get student info method' do 
-    puts(::DRT.get_student_info("181-15-965"))
-    puts(::DRT.get_student_info("181-15-0"))
+    assert(::DRT.get_student_info("181-15-933"))
   end
 end
