@@ -119,7 +119,9 @@ module DRT
       @config = config
       @logger = logger
       @db = DB_CONNECTION_GEN.call(@config.db_path, @config.db_log_path)
-      DRTMigrator.migrate(:up)
+      unless @db.connection.table_exists?(:students) or @db.connection.table_exists?(:semester_results) then
+		DRTMigrator.migrate(:up)
+	  end
     end
 
     def swing_db_for_student_info(**kwargs)
