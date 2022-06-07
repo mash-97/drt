@@ -4,7 +4,7 @@ require_relative "lib/drt/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "drt"
-  spec.version       = Drt::VERSION
+  spec.version       = DRT::VERSION
   spec.authors       = ["mash-97"]
   spec.email         = ["mahimnhd97@gmail.com"]
 

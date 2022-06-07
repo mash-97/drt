@@ -14,6 +14,12 @@ CONFIG = ::DRT::Config.new(::DRT::DRT_CONFIGPATH, ::DRT::DEFAULT_DB_PATH, ::DRT:
 DRT_OBJ = ::DRT::DRT.new(CONFIG)
 
 class DRTThor < Thor
+
+  desc 'version', 'show version'
+  def version
+    say("drt (#{::DRT::VERSION})".bold.green)
+  end
+  
   desc 'update [--student_ids, --semester_ids]', 'update DB with semester results of students'
   option :student_ids, type: :array
   option :semester_ids, type: :array
