@@ -39,6 +39,7 @@ class DRTThor < Thor
   option :dept_code, type: :string
   option :start_id, type: :numeric
   option :end_id, type: :numeric
+  
   def detect_range
     semester_code = options[:semester_code]
     dept_code = options[:dept_code]
@@ -48,6 +49,145 @@ class DRTThor < Thor
 
     result = DRT_OBJ.detect_ranges(semester_code, dept_code, primary_range)
     say("Range Founds: #{result.to_s}".bold)
+  end
+
+  desc 'detect_ids DEPARTMENT_CODE [--semester_codes, --start_id|0, --end_id|7000]', 'detect valid student ids with their info'
+  option :semester_codes, type: :array, default: []
+  option :start_id, type: :string, default: "0"
+  option :end_id, type: :string, default: "7000"
+  def detect_ids(department_code)
+    department_code = department_code.to_s
+    semester_codes = options[:semester_codes]
+    if semester_codes.length == 0 then
+      # generate semester codes from 151..current_date_year_semester
+      semester_codes = (14..Time.now.year.to_s[2..].to_i).collect(&:to_s).collect{|x| (1..3).collect{|i| x+i.to_s}}.flatten
+      say("Semester codes: #{semester_codes.to_s}".bold)
+    end
+    semester_codes.collect!(&:to_s)
+    start_id = options[:start_id].to_i
+    end_id = options[:end_id].to_i
+    id_ranges = DRTThor.idperms(start_id..end_id)
+    
+    log_file_path = File.join(File.absolute_path(Dir.pwd), "#{department_code}__#{Time.now.strftime('%d_%m_%Y__%H_%M_%S')}.log")
+    logger = ::DRT::LOGGER_GEN.call(log_file_path)
+
+    student_id_log_file_path = File.join(File.absolute_path(Dir.pwd), "student_ids__#{department_code}__#{Time.now.strftime('%d_%m_%Y__%H_%M_%S')}.log")
+    student_id_logger = ::DRT::LOGGER_GEN.call(student_id_log_file_path)
+    
+    logger.info("semester codes: #{semester_codes.to_s}")
+    logger.info("total_semester_codes: #{semester_codes.length}")
+    logger.info("id range: #{id_ranges.min} .. #{id_ranges.max}")
+
+    total_valid_student_ids = 0
+    invalid_tries = 0
+
+    semester_code_cycle = semester_codes.cycle
+    current_semester_code = semester_code_cycle.next
+    id_ranges.each do |post_id|
+      student_id = [current_semester_code, department_code, post_id].join('-')
+      student_info = try_student_info(student_id, logger)
+      
+      if not student_info then
+        invalid_tries += 1
+        say("==> #{student_id} nil".yellow.bold)
+        previous_semester_code = current_semester_code
+        current_semester_code = semester_code_cycle.next 
+        while(current_semester_code!=previous_semester_code) do
+          student_id = [current_semester_code, department_code, post_id].join('-')
+          student_info = try_student_info(student_id, logger)
+          if student_info 
+            logger.info("csc: #{current_semester_code} for #{department_code}-#{post_id}")
+            say("==> csc: #{current_semester_code} for #{department_code}-#{post_id}".yellow.bold)
+            break
+          end
+          say("==> #{student_id} nil".yellow.bold)
+          current_semester_code = semester_code_cycle.next
+          invalid_tries += 1
+        end
+        logger.info("cycled semester code: #{current_semester_code} for #{department_code}-#{post_id}")
+        say("==> cycled semester code: #{current_semester_code} for #{department_code}-#{post_id}".yellow.bold)
+      end
+      if student_info then
+        total_valid_student_ids += 1
+        say("==> #{student_id} found!".green.bold)
+        student_id_logger.info("#{student_id}: #{student_info}")
+        logger.info("valid id: #{student_id}")
+        
+      end
+    end
+    logger.info("total valid ids: #{total_valid_student_ids}")
+    logger.info("total invalid tries: #{invalid_tries}")
+    say("total valid ids: #{total_valid_student_ids}".green.bold)
+    say("total invalid tries: #{invalid_tries}".yellow.bold)
+  end
+
+  desc 'brute_detect_ids DEPARTMENT_CODE [--semester_codes, --start_id|0, --end_id|7000]', 'detect valid student ids with their info'
+  option :semester_codes, type: :array, default: []
+  option :start_id, type: :string, default: "0"
+  option :end_id, type: :string, default: "7000"
+  def brute_detect_ids(department_code)
+    department_code = department_code.to_s
+    semester_codes = options[:semester_codes]
+    if semester_codes.length == 0 then
+      # generate semester codes from 151..current_date_year_semester
+      semester_codes = (14..Time.now.year.to_s[2..].to_i).collect(&:to_s).collect{|x| (1..3).collect{|i| x+i.to_s}}.flatten
+      say("Semester codes: #{semester_codes.to_s}".bold)
+    end
+    semester_codes.collect!(&:to_s)
+    start_id = options[:start_id].to_i
+    end_id = options[:end_id].to_i
+    id_ranges = DRTThor.idperms(start_id..end_id)
+    
+    log_file_path = File.join(File.absolute_path(Dir.pwd), "#{department_code}__#{Time.now.strftime('%d_%m_%Y__%H_%M_%S')}.log")
+    logger = ::DRT::LOGGER_GEN.call(log_file_path)
+
+    student_id_log_file_path = File.join(File.absolute_path(Dir.pwd), "student_ids__#{department_code}__#{Time.now.strftime('%d_%m_%Y__%H_%M_%S')}.log")
+    student_id_logger = ::DRT::LOGGER_GEN.call(student_id_log_file_path)
+    
+    logger.info("semester codes: #{semester_codes.to_s}")
+    logger.info("total_semester_codes: #{semester_codes.length}")
+    logger.info("id range: #{id_ranges.min} .. #{id_ranges.max}")
+
+    total_valid_student_ids = 0
+    invalid_tries = 0
+
+    id_ranges.each do |post_id|
+      semester_codes.each do |semester_code|
+        student_id = [semester_code, department_code, post_id].join('-')
+        student_info = try_student_info(student_id, logger)
+        
+        if not student_info then
+          invalid_tries += 1
+          say("==> #{student_id} nil".blue.bold)
+          logger.info("invalid id: #{student_id}")
+        end
+        if student_info then
+          total_valid_student_ids += 1
+          say("==> #{student_id} found!".green.bold)
+          student_id_logger.info("#{student_id}: #{student_info}")
+          logger.info("valid id: #{student_id}")
+        end
+      end
+    end
+    logger.info("total valid ids: #{total_valid_student_ids}")
+    logger.info("total invalid tries: #{invalid_tries}")
+    say("total valid ids: #{total_valid_student_ids}".green.bold)
+    say("total invalid tries: #{invalid_tries}".yellow.bold)
+  end
+
+  def try_student_info(student_id, logger, tries=1000, sleep=5)
+    student_info = nil
+    tries.times do |i|
+      begin
+        student_info = ::DRT.get_student_info(student_id)
+      rescue Faraday::ConnectionFailed => e
+        say("##[tries: #{i+1}]##> Connection Error! #{e}".red.bold)
+        sleep(sleep)
+        continue
+      end
+      break
+    end
+    return student_info
   end
 
   desc 'id_roller [--semester_code, --dept_code, --start_id, --end_id, --tries|3, --sleep|2]', 'detect range for valid student ids'
@@ -155,6 +295,24 @@ class DRTThor < Thor
     t, n = DRT_OBJ.swing_db_for_semester_result(student_ids: student_ids, semester_ids: semester_ids)
     say("\n\n==> Total Updates: #{t} -- Total Not Found: #{n}".blue.bold)
   end
+
+  # return all possible ids
+  def self.idperms(id_range=(0..7000))
+    id_perms = []
+    max_step_lim = id_range.max.to_s.length
+    max_step_lim.times do |perm_length|
+      perm_length += 1
+      id_perms.concat (0..9).collect(&:to_s).repeated_permutation(perm_length).collect(&:join)
+    end
+    id_perms = id_perms.select{|x| id_range.include?(x.to_i)}
+    return id_perms
+  end
+
 end
 
+# if $0 == __FILE__ then
+#   puts(DRTThor.idperms(0..1555))
+#   gets 
+# end
 DRTThor.start(ARGV)
+
