@@ -183,7 +183,7 @@ class DRTThor < Thor
       rescue Faraday::ConnectionFailed => e
         say("##[tries: #{i+1}]##> Connection Error! #{e}".red.bold)
         sleep(sleep)
-        continue
+        next
       end
       break
     end
