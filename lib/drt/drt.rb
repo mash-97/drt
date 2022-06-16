@@ -14,12 +14,12 @@ module DRT
   # module to maintain structure
   DRT_DIRPATH = File.join(ENV['HOME'], '.drt')
   DRT_CONFIGPATH = File.join(DRT_DIRPATH, 'drt_config.yml')
-  DRT_LOGPATH = File.join(DRT_DIRPATH, 'drt.log')
+  DRT_LOGPATH = ->{File.join(DRT_DIRPATH, "drt__#{department_code}__#{Time.now.strftime('%d_%m_%Y__%H_%M_%S')}.log")}
 
   DEFAULT_DB_PATH = File.join(DRT_DIRPATH, 'drt.db')
   DEFAULT_DB_LOG_PATH = File.join(DRT_DIRPATH, 'drt_db.log')
 
-  LOGGER_GEN = lambda do |log_path = DRT_LOGPATH|
+  LOGGER_GEN = lambda do |log_path = DRT_LOGPATH.call()|
     l = Logger.new(log_path)
     l.formatter = proc do |severity, datetime, progname, msg|
       datetime = datetime.strftime('%d-%m-%Y %H:%M:%S')
