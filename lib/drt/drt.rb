@@ -14,7 +14,7 @@ module DRT
   # module to maintain structure
   DRT_DIRPATH = File.join(ENV['HOME'], '.drt')
   DRT_CONFIGPATH = File.join(DRT_DIRPATH, 'drt_config.yml')
-  DRT_LOGPATH = ->{File.join(DRT_DIRPATH, "drt__#{department_code}__#{Time.now.strftime('%d_%m_%Y__%H_%M_%S')}.log")}
+  DRT_LOGPATH = ->{File.join(DRT_DIRPATH, "drt__#{Time.now.strftime('%d_%m_%Y__%H_%M_%S')}.log")}
 
   DEFAULT_DB_PATH = File.join(DRT_DIRPATH, 'drt.db')
   DEFAULT_DB_LOG_PATH = File.join(DRT_DIRPATH, 'drt_db.log')
