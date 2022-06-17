@@ -174,20 +174,22 @@ class DRTThor < Thor
     say("total valid ids: #{total_valid_student_ids}".green.bold)
     say("total invalid tries: #{invalid_tries}".yellow.bold)
   end
-
-  def try_student_info(student_id, logger, tries=1000, sleep=5)
-    student_info = nil
-    tries.times do |i|
-      begin
-        student_info = ::DRT.get_student_info(student_id)
-      rescue Faraday::ConnectionFailed => e
-        say("##[tries: #{i+1}]##> Connection Error! #{e}".red.bold)
-        sleep(sleep)
-        next
+  
+  no_commands do
+    def try_student_info(student_id, logger, tries=1000, sleep=5)
+      student_info = nil
+      tries.times do |i|
+        begin
+          student_info = ::DRT.get_student_info(student_id)
+        rescue Faraday::ConnectionFailed => e
+          say("##[tries: #{i+1}]##> Connection Error! #{e}".red.bold)
+          sleep(sleep)
+          next
+        end
+        break
       end
-      break
+      return student_info
     end
-    return student_info
   end
 
   desc 'id_roller [--semester_code, --dept_code, --start_id, --end_id, --tries|3, --sleep|2]', 'detect range for valid student ids'
