@@ -22,13 +22,13 @@ module DRTV1
   class LogDev < Logger::LogDevice
     def write(data, &puts_lambda)
       super(data)
-      data = puts_lambda if puts_lambda
+      data = puts_lambda.call(data) if puts_lambda
       puts(data)
     end
   end
 
   LOGGER_GEN = lambda do |log_path = DRT_LOGPATH.call()|
-    l = Logger.new(LogDev(log_path))
+    l = Logger.new(LogDev.new(log_path))
     l.formatter = proc do |severity, datetime, progname, msg|
       datetime = datetime.strftime('%d-%m-%Y %H:%M:%S')
       if progname
@@ -85,37 +85,37 @@ module DRTV1
   # Config class
   class Config
     # attributes to maintain configuration static
-    attr_accessor :db_path, :db_log_path
+    attr_accessor :db_path, :log_path
 
-    def initialize(config_path, db_path, db_log_path)
+    def initialize(config_path, db_path, log_path)
       @config_path = config_path
       @db_path = db_path
-      @db_log_path = db_log_path
+      @log_path = log_path
 
       reconfig unless File.exist?(@config_path)
 
       @configs = Config.load_configs(@config_path)
-      @db_path, @db_log_path = Config.parse_configs(@configs)
+      @db_path, @log_path = Config.parse_configs(@configs)
     end
 
     def reconfig
-      Config.initialize_config(@config_path, @db_path, @db_log_path)
+      Config.initialize_config(@config_path, @db_path, @log_path)
     end
 
     def self.parse_configs(configs_hash)
       db_path = configs_hash['db_path']
-      db_log_path = configs_hash['db_log_path']
-      [db_path, db_log_path]
+      log_path = configs_hash['log_path']
+      [db_path, log_path]
     end
 
     def self.load_configs(config_path)
       YAML.load_file(config_path)
     end
 
-    def self.initialize_config(config_file_path, db_path, db_log_path)
+    def self.initialize_config(config_file_path, db_path, log_path)
       configs = {
         'db_path' => db_path,
-        'db_log_path' => db_log_path
+        'log_path' => log_path
       }
       File.open(config_file_path, 'w+') { |f| YAML.dump(configs, f) }
     end
@@ -129,13 +129,13 @@ module DRTV1
     attr_accessor :config
     attr_accessor :logger, :db, :faraday_connection
 
-    def initialize(config, logger = LOGGER_GEN.call())
+    def initialize(config)
       @faraday_connection = FARADAY_CONNECTION_GEN.call
       @config = config
-      @logger = logger
-      @db = DB_CONNECTION_GEN.call(@config.db_path, @config.db_log_path)
+      @logger = LOGGER_GEN.call(@config.log_path)
+      @db = DB_CONNECTION_GEN.call(@config.db_path, @config.log_path)
       unless @db.connection.table_exists?(:students) || @db.connection.table_exists?(:semester_results)
-        DRTMigrator.migrate(:up)
+        ::DRT::DRTMigrator.migrate(:up)
       end
     end
   end
@@ -148,7 +148,7 @@ module DRTV1
     logger.info("(get_student_info:request) #{student_id}") if logger
     response = faraday_connection.get('result/studentInfo', studentId: student_id)
     logger.info("(get_student_info:response) #{student_id} #{response.status}") if logger
-    parsed_student_info = parse_student_info(response.body)
+    parsed_student_info = ::DRT.parse_student_info(response.body)
     if parsed_student_info[:student_id].nil?
       logger.info("(get_student_info:result) #{student_id} [invalid]") if logger
       return nil
@@ -166,7 +166,7 @@ module DRTV1
     logger.info("(get_semester_result:request) #{student_id}:#{semester_id}") if logger
     response = faraday_connection.get('result', studentId: student_id, semesterId: semester_id)
     logger.info("(get_semester_result:response) #{student_id}:#{semester_id} #{response.status}") if logger
-    parsed_semester_result = parse_semester_result(response.body)
+    parsed_semester_result = ::DRT.parse_semester_result(response.body)
     if parsed_semester_result.length = 0
       logger.info("(get_semester_result:result) #{student_id}:#{semester_id} [invalid]") if logger
       return nil
@@ -182,14 +182,14 @@ module DRTV1
       logger.info("(update_student_info) #{student_id} [failed to get info, aborting update]") if logger
       return nil
     end
-    student = Student.find_by(student_id: student_info[:student_id])
+    student = ::DRT::Student.find_by(student_id: student_info[:student_id])
     if student
       student.update(**student_info)
       logger.info("(update_student_info) #{student_id} [found in db and updated]") if logger
       student
     else
       begin
-        student = Student.create(**student_info)
+        student = ::DRT::Student.create(**student_info)
         logger.info("(update_student_info) #{student_id} [new insert in db]") if logger
         student
       rescue StandardError => e
@@ -201,7 +201,7 @@ module DRTV1
 
   # updates a single semester_result given student_id, semester_id and faraday_connection int DATABASE
   def self.update_semester_result(student_id, semester_id, logger = nil, faraday_connection = FARADAY_CONNECTION_GEN.call())
-    student = Student.find_by(student_id: student_id)
+    student = ::DRT::Student.find_by(student_id: student_id)
 
     unless student
       logger.info("(update_semester_result) #{student_id}:#{semester_id} [not found in db]") if logger
@@ -233,7 +233,7 @@ module DRTV1
           logger.info("(update_semester_result) #{student_id}:#{semester_id} [#{ssr[:course_id]}:#{ssr[:course_title]} found in db, updated]")
         end
       else
-        tssr = SemesterResult.create(**ssr)
+        tssr = ::DRT::SemesterResult.create(**ssr)
         if logger
           logger.info("(update_semester_result) #{student_id}:#{semester_id} [#{ssr[:course_id]}:#{ssr[:course_title]} not found in db, created]")
         end
