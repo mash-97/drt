@@ -14,7 +14,7 @@ module DRT1
   # module to maintain structure
   DRT_DIRPATH = File.join(ENV['HOME'], '.drt')
   DRT_CONFIGPATH = File.join(DRT_DIRPATH, 'drt_config.yml')
-  DRT_LOGPATH = -> { File.join(DRT_DIRPATH, "drt__#{Time.now.strftime('%d_%m_%Y__%H_%M_%S')}.log") }
+  DRT_LOGPATH = -> { File.join(DRT_DIRPATH, "drt__#{ENV["USER"]}__#{Time.now.strftime('%d_%m_%Y__%H_%M_%S')}.log") }
 
   DEFAULT_DB_PATH = File.join(DRT_DIRPATH, 'drt.db')
   DEFAULT_DB_LOG_PATH = File.join(DRT_DIRPATH, 'drt_db.log')
@@ -175,7 +175,7 @@ module DRT1
     parsed_semester_result
   end
 
-  # updates a single student info given student_id and faraday_connection
+  # updates a single student info given student_id and faraday_connection into DATABASE
   def self.update_student_info(student_id, logger = nil, faraday_connection = FARADAY_CONNECTION_GEN.call())
     student_info = get_student_info(student_id, logger, faraday_connection)
     unless student_info
@@ -199,7 +199,7 @@ module DRT1
     end
   end
 
-  # updates a single semester_result given student_id, semester_id and faraday_connection
+  # updates a single semester_result given student_id, semester_id and faraday_connection int DATABASE
   def self.update_semester_result(student_id, semester_id, logger = nil, faraday_connection = FARADAY_CONNECTION_GEN.call())
     student = Student.find_by(student_id: student_id)
 
