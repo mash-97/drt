@@ -10,7 +10,7 @@ require_relative 'migrator'
 require_relative 'models'
 
 # DIU student Result Trends
-module DRT1
+module DRTV1
   # module to maintain structure
   DRT_DIRPATH = File.join(ENV['HOME'], '.drt')
   DRT_CONFIGPATH = File.join(DRT_DIRPATH, 'drt_config.yml')
