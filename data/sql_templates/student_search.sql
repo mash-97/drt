@@ -1,0 +1,1 @@
+select * from students where student_id like "%-15-%" and student_name like "%Safim%";
