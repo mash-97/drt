@@ -32,7 +32,7 @@ module DRT
     l
   end
 
-  SITE_URL = 'http://software.diu.edu.bd:8189'
+  SITE_URL = 'http://software.diu.edu.bd:8006'
   FARADAY_CONNECTION_GEN = lambda do
     Faraday.new(
       url: SITE_URL,
